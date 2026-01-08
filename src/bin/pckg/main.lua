@@ -19,6 +19,34 @@ pckg.IsRunning = arg[0] == "pckg" -- checks if its app itself running
 --
 -----------------------------------------------
 
+pckg.prefixes = {
+  ["b"] = {
+    ["desc"] = 'specifies branch ( stable by default )',
+    ["word"] = true
+  },
+
+  ["v"] = {
+    ["desc"] = 'specifies version ( latest by default )',
+    ["word"] = true
+  },
+
+  ["r"] = {
+    ["desc"] = 'reinstall'
+  },
+
+  ["i"] = {
+    ["desc"] = 'install'
+  },
+
+  ["u"] = {
+    ["desc"] = 'uninstall'
+  }
+
+
+
+}
+
+
 function pckg.tokenize(cmd) -- tokenize the command (pckg -i package -b branch -v version)
     local tokens = {} -- initilize token table
     local lastToken
@@ -29,15 +57,29 @@ function pckg.tokenize(cmd) -- tokenize the command (pckg -i package -b branch -
         if word:sub(1, 1) == "-" then -- check if the word starts with -
             token.type = 'prefix' -- create  token with type 'prefix' and value of prefix
             token.prefix = word:sub(1)
+        else
+            token.content = word
+            token.type = 'word'
         end
 
-        if lastToken and lastToken.type=='prefix' then
-            lastToken.content = word
+        if lastToken and lastToken.type=='prefix' then -- check if last token is prefix
+          
+          local lastPrefixInfo = pckg.prefixes[lastToken.prefix] -- get last prefix info
+          
+          if lastPrefixInfo and lastPrefixInfo.word then -- chwck if last prefix info
+            lastToken.content = word -- set last prefix content to current word if it needs word
+          else
+            table.insert(tokens, token)
+
+          end
+        
+        else
+          table.insert(tokens, token)
+
         end
     end
 end
 
-pckg.tokenize("pckg -a -b test -c -d ooooo -e -f      something alalalalala")
 
 -----------------------------------------------
 --
