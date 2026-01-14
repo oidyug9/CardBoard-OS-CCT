@@ -50,26 +50,26 @@ function canvas:Merge(x, y, width, height, ParentCanvas)
             local x_Scale = _x/width
             local y_Scale = _x/width
 
-            local X_pixel = math.floor(#self.canvas[1]*x_Scale)
-            local Y_pixel = math.floor(#self.canvas*y_Scale)
+            local X_pixel = math.ceil(#self.canvas[1]*x_Scale)
+            local Y_pixel = math.ceil(#self.canvas*y_Scale)
 
-            ParentCanvas:DrawPixel(self:GetPixel(X_pixel, Y_pixel))
+            ParentCanvas:DrawPixel(x, y, self:GetPixel(X_pixel, Y_pixel))
         end
     end
 end
 
-function canvas:DrawOnScreen()
-    for y = 1, math.floor(#self.canvas / 2) do
-        for x = 1, #self.canvas[1] do
-            term.setTextColor(tonumber(self:GetPixel(x, y * 2 - 1)))
-            term.setBackgroundColor(tonumber(self:GetPixel(x, y * 2)))
-            term.setCursorPos(x,y)
+function canvas:DrawOnScreen(x, y)
+    for _y = 1, math.floor(#self.canvas / 2) do
+        for _x = 1, #self.canvas[1] do
+            term.setTextColor(tonumber(self:GetPixel(_x, _y * 2 - 1)))
+            term.setBackgroundColor(tonumber(self:GetPixel(_x, _y * 2)))
+            term.setCursorPos(_x+x,_y+y)
             term.write(string.char(131))
         end
     end
 end
 
---canvas = require 'canvas' test=canvas.new(25,25,15) for i=1, #test.canvas, 2 do test:DrawPixel(1, i, 5) end a = canvas.new(50,50,1) test:Merge(1,1,10,10, a) a:DrawOnScreen()
---canvas = require 'canvas' test=canvas.new(25,25,15) for i=1, #test.canvas, 2 do test:DrawPixel(1, i, 5) end test:DrawOnScreen()
+--canvas = require 'canvas' test=canvas.new(25,25,1) for i=1, #test.canvas, 2 do test:DrawPixel(1, i, 5) end a = canvas.new(25,25,1) test:Merge(1,1,15,15, a) a:DrawOnScreen(15, 15)
+--canvas = require 'canvas' test=canvas.new(25,25,15) for i=1, #test.canvas, 2 do test:DrawPixel(1, i, 5) end test:DrawOnScreen(15, 15)
 
 return canvas
