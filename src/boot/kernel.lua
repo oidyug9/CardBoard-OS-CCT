@@ -3,17 +3,16 @@ KernelInfo = {}
 KernelInfo.version = 0.01
 
 -- logging
-function wPrint(...)
-    term.blit(..., string.rep('1', #...))
+logging = {}
+logging.warns = {}
+
+function wPrint(string)
+    table.insert(logging.warns, string)
+    print(string)
 end
 
-
-
-
-
-
-
-
+-- kernel crash
+KC = require 'boot/crashHandle'
 
 -- kernel
 Kernel = {}
@@ -58,16 +57,30 @@ function LoadCustomGlobalObjects()
         local objName = _objName:sub(1,-5)
         table.insert(FoundObjects, objName)
         print("Loading "..objName.." global object")
-        KernelData.CBGlobals[objName] = require fs.combine("/boot/objects", objName)
+        KC.kernelCCall(function() KernelData.CBGlobals[objName] = require(fs.combine("/boot/objects", objName)) end, 4)
     end
 
     for _, obj in pairs(FoundObjects) do
-        local WasFoundAndNotCorrupted
+        local WasFound = false
+        local NotCorrupted = false
 
-        error("bruh", 1)
-        --warn("testt", 0)
+        if KernelData.CBGlobals[obj] then
+            WasFound = true
+            print('found object: '..obj)
 
+            if type(KernelData.CBGlobals[obj]) == 'table' then
+                print('object: '..obj..' is not corrupted')
+                NotCorrupted = true
+            end
+        end
+
+        if not (WasFound or NotCorrupted) then
+            wPrint('Object '..obj..' is corrupted')
+        end
+
+        print()
     end
+
 end
 
 
@@ -97,42 +110,51 @@ end
 
 
 
+function Startup()
+    
+end
 
 function SetupCustomEnv()
-    LoadCustomGlobalObjects()
+    KC.kernelCCall(LoadCustomGlobalObjects(), 3)
 
 end
 
 -- build in events
 
-function OnKernelCrash(errcode, additionalInfo)
-
-end
-
-
-
-
 function __main()
     term.clear()
     term.setCursorPos(1,1)
-    SetupCustomEnv()
+    KC.kernelCCall(SetupCustomEnv, 6)
+    KC.kernelCCall(Startup, 5)
 
 
-
-    return 0
+    KernelRunning =false
+    return true
 end
 
 
 local success, result = pcall(__main)
 
+print()
+
 if not success then
-    OnKernelCrash(2, result)
-    return
+    KC.OnKernelCrash(2, result)
 end
 
-if KernelRunning then
-    OnKernelCrash(1, result)
-    return
+if KernelRunning and success then
+    KC.OnKernelCrash(1, result)
 end
 
-return result
+if #logging.warns > 0 then
+    print('----------------------')
+
+    for _, warning in pairs(logging.warns) do
+        print(warning)
+    end
+
+
+    sleep(1)
+end
+
+
+os.shutdown()
