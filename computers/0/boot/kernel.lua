@@ -90,10 +90,10 @@ function CustomFileSystem()
     
 end
 
-function StartProcess(name, file)
+function StartProcess(file)
     local proc =  Procsess.create(
         file,
-        load(name, nil, nil, KernelData.CBGlobals )
+        load(file, nil, nil, KernelData.CBGlobals )
     )
 
     return proc
@@ -105,8 +105,8 @@ function RunStartupFiles()
 
         local FileContent = fileFS.readAll()
 
-        print('Starting ', file, FileContent, name)
-        StartProcess(file, FileContent)
+        print('Starting ', file, FileContent)
+        StartProcess(FileContent)
         fileFS.close()
     end
 end
