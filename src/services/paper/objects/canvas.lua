@@ -43,6 +43,14 @@ function canvas:DrawSquare(x, y, width, height, num)
     end
 end
 
+function canvas:executeForEveryPixel(func)
+    for y=1, #self.canvas do 
+        for x=1, #self.canvas[1] do 
+            self:DrawPixel(x, y, func(x, y, self.GetPixel(x,y)))
+        end
+    end
+
+end
 
 function canvas:Merge(x, y, width, height, ParentCanvas)
     for _y=1, height do
