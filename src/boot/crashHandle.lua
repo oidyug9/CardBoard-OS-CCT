@@ -1,19 +1,14 @@
 -- kernel crash
 local KC = {}
 KC.errorCodes = {[1]="get_crash_codes crash in crashHandle"}
-
+KC.Logging = require('/boot/logging')
 
 
 
 
 function KC.OnKernelCrash(errCode, additionalInfo)
-
-    local CrashData = {
-        code = errCode,
-        additionalInfo=additionalInfo,
-        crashmsg=KC.errorCodes[tostring(errCode)] or KC.errorCodes['0']
-    }
-
+    KC.Logging.crash('OnKernelCrash', errCode, additionalInfo, KC.errorCodes[tostring(errCode)] or KC.errorCodes['0'])
+    KC.Logging.finish()
 
     local errorDesc = KC.errorCodes[tostring(errCode)] or KC.errorCodes['0']
 

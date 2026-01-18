@@ -1,10 +1,13 @@
 local processManager = {}
-local CrashHandle = require "/boot/crashHandle"
+processManager.CrashHandle = require "/boot/crashHandle"
+processManager.Logging = require('/boot/logging')
 
 processManager.processes = {}
 processManager.nextPID = 1
 processManager.currentPID = nil
 processManager.Global = {}
+
+processManager.MaxProcessTime = 0.05
 
 function processManager.create(name, func, parentPID)
     local pid = processManager.nextPID
@@ -13,7 +16,7 @@ function processManager.create(name, func, parentPID)
     local proc = {
         name = name,
         pid = pid, -- process id
-        parent = parent, -- parent of current process
+        parent = parentPID, -- parent of current process
         children = {}, --child processes (might be usefull)
         mailbox = {}, -- mailbox (send, recive data between processes)
         co = coroutine.create(func), -- create corutine
@@ -31,7 +34,7 @@ function processManager.create(name, func, parentPID)
         
         else -- if parent process doen't exist crash because funny
 
-            CrashHandle.OnKernelCrash(7, 'parent process not found ( '..tostring(parentPID)..') for '..tostring(proc.pid)..'.')
+            processManager.CrashHandle.OnKernelCrash(7, 'parent process not found ( '..tostring(parentPID)..') for '..tostring(proc.pid)..'.')
         
         end
     end
@@ -41,7 +44,7 @@ function processManager.create(name, func, parentPID)
 end
 
 function processManager.send(TargetPID, data) --send data
-    local Target = processManager.processes[tTargetPID]
+    local Target = processManager.processes[TargetPID]
     if Target then
         table.insert(Target.mailbox,
             {

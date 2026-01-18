@@ -2,18 +2,28 @@
 KernelInfo = {}
 KernelInfo.version = 0.01
 
--- logging
-logging = {}
-logging.warns = {}
-
-function wPrint(string)
-    table.insert(logging.warns, string)
-    print(string)
+print('Hello! welcome to cardboard box kernel version '..KernelInfo.version)
+print('')
+print('please click r to enter repair / toolkit menu')
+local event, key, is_held = os.pullEvent("key")
+if keys.getName(key) == 'r' then
+    return nil
 end
 
--- kernel crash
-KC = require 'boot/crashHandle'
-Procsess = require 'boot/processManager'
+-- kernel sub files
+Logging = require( 'boot/logging' )
+Logging.new()
+
+KC = require( 'boot/crashHandle' )
+Procsess = require( 'boot/processManager' )
+Hardware = require( 'boot/hardwareManager' )
+
+KC.Logging = Logging
+Procsess.Logging = Logging
+Hardware.Logging = Logging
+
+
+Hardware.LoadDrivers()
 
 
 
@@ -21,7 +31,6 @@ Procsess = require 'boot/processManager'
 Kernel = {}
 Kernel.Processes = {} -- processes
 KernelRunning = true
-
 
 
 -- custom enveriouvment
@@ -33,13 +42,13 @@ KernelData.CBGlobals = {}
 KernelData.CBGlobals.NotCraftOsGlobals = true
 
 function LoadCustomGlobalObjects()
-    print("__ global objects __")
+    Logging.print('Kernel > LoadCustomGlobalObjects', "__ global objects __")
     local FoundObjects = {}
 
     for _, _objName in pairs(fs.list("/boot/objects")) do
         local objName = _objName:sub(1,-5)
         table.insert(FoundObjects, objName)
-        print("Loading "..objName.." global object")
+        Logging.print('Kernel > LoadCustomGlobalObjects', "Loading "..objName.." global object")
         KC.kernelCCall(function() KernelData.CBGlobals[objName] = require(fs.combine("/boot/objects", objName)) end, 2)
     end
 
@@ -49,16 +58,16 @@ function LoadCustomGlobalObjects()
 
         if KernelData.CBGlobals[obj] then
             WasFound = true
-            print('found object: '..obj)
+            Logging.print('Kernel > LoadCustomGlobalObjects', 'found object: '..obj)
 
             if type(KernelData.CBGlobals[obj]) == 'table' then
-                print('object: '..obj..' is not corrupted')
+                Logging.print('Kernel > LoadCustomGlobalObjects', 'object: '..obj..' is not corrupted')
                 NotCorrupted = true
             end
         end
 
         if not (WasFound or NotCorrupted) then
-            wPrint('Object '..obj..' is corrupted')
+            Logging.warn('Kernel > LoadCustomGlobalObjects', 'Object '..obj..' is corrupted')
         end
 
     end
@@ -105,7 +114,7 @@ function RunStartupFiles()
 
         local FileContent = fileFS.readAll()
 
-        print('Starting ', file, FileContent, name)
+        Logging.print('Kernel > RunStartupFiles', 'Starting '.. file..' '.. FileContent..' '.. name)
         StartProcess(file, FileContent)
         fileFS.close()
     end
@@ -119,27 +128,32 @@ end
 
 
 function __tick()
-    KC.kernelCCall(Procsess.tick())
+    Logging.print('Kernel > __tick', 'Executed')
+    KC.kernelCCall(Hardware.checkHardware, 9)
+    --KC.kernelCCall(Procsess.tick(), 10)
 
+    Logging.print('Kernel > __tick', 'Ended')
 end
 
 function __main()
+    Logging.print('Kernel > __main', 'Executed')
     term.clear()
     term.setCursorPos(1,1)
     KC.kernelCCall(SetupCustomEnv, 4)
-    KC.kernelCCall(RunStartupFiles, 5)
+    --KC.kernelCCall(RunStartupFiles, 5)
 
     while KernelRunning do
         KC.kernelCCall(__tick, 7)
     end
 
+    Logging.print('Kernel > __main', 'Ended')
     return true
 end
 
 
 local success, result = pcall(__main)
 
-print()
+Logging.print('Kernel','')
 
 if not success then
     KC.OnKernelCrash(2, result)
@@ -149,16 +163,7 @@ if KernelRunning and success then
     KC.OnKernelCrash(1, result)
 end
 
-if #logging.warns > 0 then
-    print('----------------------')
 
-    for _, warning in pairs(logging.warns) do
-        print(warning)
-    end
-
-
-    sleep(1)
-end
-
-
+Logging.print('Kernel', 'END')
+Logging.finish()
 os.shutdown()
