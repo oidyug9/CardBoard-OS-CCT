@@ -1,12 +1,12 @@
 local canvas = {}
 canvas.__index = canvas
 
-function canvas.new(width, height, color)
+function canvas.new(width, height, r, g, b)
     local canvasMatrix = {}
     for y=0, height do
         local w = {}
         for x=0, width do
-            table.insert(w, color)
+            table.insert(w, {r=r,g=g,b=b})
         end
         table.insert(canvasMatrix, w)
     end
@@ -14,39 +14,67 @@ function canvas.new(width, height, color)
     return setmetatable({["canvas"]=canvasMatrix}, canvas)
 end
 
-function canvas:DrawPixel(x, y, num)
-    self.canvas[y][x] = num
+function canvas:DrawPixel(x, y, r, g, b)
+    self.canvas[y][x][r] = r
+    self.canvas[y][x][g] = g
+    self.canvas[y][x][b] = b
 end
 
 function canvas:GetPixel(x, y)
     return self.canvas[y][x]
 end
 
-function canvas:DrawFrame(x,y,width,height,num)
-    for _x=0, width+x do
-        self.canvas[y][x+_x] = num
-    end
-    for _y=1, y+height-1 do
-        self.canvas[y+_y][x] = num
-        self.canvas[y+_y][x+width] = num
-    end
-    for _x=0, width+x do
-        self.canvas[y+height][x+_x] = num
-    end
-end
+-- function canvas:DrawFrame(x,y,width,height,r, g, b)
+--     for _x=0, width+x do
+--         self.canvas[y][x+_x] = num
+--     end
+--     for _y=1, y+height-1 do
+--         self.canvas[y+_y][x] = num
+--         self.canvas[y+_y][x+width] = num
+--     end
+--     for _x=0, width+x do
+--         self.canvas[y+height][x+_x] = num
+--     end
+-- end
 
-function canvas:DrawSquare(x, y, width, height, num)
+function canvas:DrawSquare(x, y, width, height, r, g, b)
     for _y=0, height do
         for _x=0, width do
-            self:DrawPixel(_x+x, _y+y, num)
+            self:DrawPixel(_x+x, _y+y, r, g, b)
         end
     end
 end
 
-function canvas:executeForEveryPixel(func)
+function canvas:AtkinsonDither(snap, spread, div)
+    local function DitherFunc(x, y, pixel)
+        local old = pixel
+        local new = math.floor(pixel*snap + 0.5)/snap
+        local err = old-new
+        local spreadErr = err/div
+
+        for SX=0, spread do
+            for SY=0, spread do
+                self:ExecuteOnPixel(x+SX,y+SY, function (_, _, pix)
+                    return pix + spreadErr
+                end)
+            end
+        end
+
+
+        return new
+    end
+
+    self:ExecuteForEveryPixel(DitherFunc)
+end
+
+function canvas:ExecuteOnPixel(x,y,func)
+    self:DrawPixel(x, y, func(x, y, self.GetPixel(x, y)))
+end
+
+function canvas:ExecuteForEveryPixel(func)
     for y=1, #self.canvas do 
         for x=1, #self.canvas[1] do 
-            self:DrawPixel(x, y, func(x, y, self.GetPixel(x,y)))
+            canvas:RunOnPixel(x,y,func)
         end
     end
 
@@ -61,7 +89,7 @@ function canvas:Merge(x, y, width, height, ParentCanvas)
             local X_pixel = math.ceil(#self.canvas[1]*x_Scale)
             local Y_pixel = math.ceil(#self.canvas*y_Scale)
 
-            ParentCanvas:DrawPixel(x, y, self:GetPixel(X_pixel, Y_pixel))
+            ParentCanvas:DrawPixel(x, y, table.unpack(self:GetPixel(X_pixel, Y_pixel)))
         end
     end
 end
