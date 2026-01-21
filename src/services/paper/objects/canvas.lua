@@ -11,7 +11,7 @@ function canvas.new(width, height, r, g, b)
         table.insert(canvasMatrix, w)
     end
 
-    return setmetatable({["canvas"]=canvasMatrix}, canvas)
+    return setmetatable({[canvas]=canvasMatrix}, canvas)
 end
 
 function canvas:DrawPixel(x, y, r, g, b)
@@ -37,6 +37,18 @@ end
 --     end
 -- end
 
+function canvas.from0to255(val)
+    return math.min(255, math.max(0, val))
+end
+
+function canvas.FIX_COLOR(color)
+    local R = math.min(255, math.max(0, color.r))
+    local G = math.min(255, math.max(0, color.g))
+    local B = math.min(255, math.max(0, color.b))
+
+    return {r=R, g=G, b=B}
+end
+
 function canvas:DrawSquare(x, y, width, height, r, g, b)
     for _y=0, height do
         for _x=0, width do
@@ -45,8 +57,17 @@ function canvas:DrawSquare(x, y, width, height, r, g, b)
     end
 end
 
+function canvas:clone()
+    local new = canvas.new(#self.canvas[1], #self.canvas, 0, 0, 0)
+    for y=1, #self.canvas do 
+        for x=1, #self.canvas[1] do 
+            new:DrawPixel(x, y, table.unpack(self:GetPixel(x, y)))
+        end
+    end
+end
+
 function canvas:AtkinsonDither(snap, spread, div)
-    local function DitherFunc(x, y, pixel)
+    local function DitherFunc(x, y, r, g, b)
         local old = pixel
         local new = math.floor(pixel*snap + 0.5)/snap
         local err = old-new
@@ -54,21 +75,21 @@ function canvas:AtkinsonDither(snap, spread, div)
 
         for SX=0, spread do
             for SY=0, spread do
-                self:ExecuteOnPixel(x+SX,y+SY, function (_, _, pix)
-                    return pix + spreadErr
+                self:ExecuteOnPixel(x+SX,y+SY, function (_, _, r, g, b)
+                    return canvas.FIX_COLOR({r=r + spreadErr, g=g + spreadErr, b=b + spreadErr})
                 end)
             end
         end
 
 
-        return new
+        return {r=newR, g=newG, b=newB}
     end
 
     self:ExecuteForEveryPixel(DitherFunc)
 end
 
 function canvas:ExecuteOnPixel(x,y,func)
-    self:DrawPixel(x, y, func(x, y, self.GetPixel(x, y)))
+    self:DrawPixel(x, y, table.unpack(func(x, y, table.unpack(self.GetPixel(x, y)))))
 end
 
 function canvas:ExecuteForEveryPixel(func)
