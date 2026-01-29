@@ -1,0 +1,11 @@
+0=unknown
+
+2=/boot/objects lua error
+3=error calling LoadCustomGlobalObjects
+4=error calling SetupCustomEnv
+5=error calling RunStartupFiles
+6=error calling __tick function
+7=process tick error
+8=hardware manager require driver error
+9=__tick chardware check error
+10=__tick process tick error
